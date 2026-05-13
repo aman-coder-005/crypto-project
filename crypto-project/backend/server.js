@@ -3,7 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import http from "http";
 import { Server } from "socket.io";
-import connectDB from "./config/db.js";
+import { requireDB } from "./config/db.js";
 import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/User.js";
 import portfolioRoutes from "./routes/portfolio.js";
@@ -14,7 +14,6 @@ import chat from "./routes/chat.js";
 import priceRoutes from "./routes/prices.js";
 
 dotenv.config({ quiet: true });
-connectDB();
 
 const app = express();
 const allowedOrigins = [
@@ -43,13 +42,13 @@ app.use(
 app.use(express.json());
 
 // Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/portfolio", portfolioRoutes);
+app.use("/api/auth", requireDB, authRoutes);
+app.use("/api/portfolio", requireDB, portfolioRoutes);
 app.use("/api/news", newsRoutes);
-app.use("/api/user", userRoutes);
+app.use("/api/user", requireDB, userRoutes);
 app.use("/api/market", marketRoutes);
-app.use("/api/leaderboard", leaderboardRoutes);
-app.use("/api/chat", chat);
+app.use("/api/leaderboard", requireDB, leaderboardRoutes);
+app.use("/api/chat", requireDB, chat);
 app.use("/api/prices", priceRoutes);
 
 app.get("/api/ping", (req, res) => {

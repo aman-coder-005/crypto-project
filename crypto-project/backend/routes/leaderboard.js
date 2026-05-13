@@ -1,7 +1,6 @@
 // backend/routes/leaderboard.js
 import { Router } from "express";
 import Portfolio from "../models/Portfolio.js";
-import User from "../models/user.js"; // to fetch username
 import { coingeckoGet } from "../config/coingecko.js";
 
 const router = Router();

@@ -1,12 +1,39 @@
 import mongoose from "mongoose";
 
+let connectionPromise = null;
+
 const connectDB = async () => {
+  if (mongoose.connection.readyState === 1) {
+    return mongoose.connection;
+  }
+
+  if (connectionPromise) {
+    return connectionPromise;
+  }
+
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI);
-    console.log(`✅ MongoDB connected: ${conn.connection.host}`);
+    connectionPromise = mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 5000,
+    });
+    const conn = await connectionPromise;
+    console.log(`MongoDB connected: ${conn.connection.host}`);
+    return conn.connection;
   } catch (error) {
-    console.error("❌ MongoDB connection failed:", error.message);
-    process.exit(1);
+    connectionPromise = null;
+    console.error("MongoDB connection failed:", error.message);
+    throw error;
+  }
+};
+
+export const requireDB = async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    res.status(503).json({
+      error: "Database unavailable",
+      message: error.message,
+    });
   }
 };
 
