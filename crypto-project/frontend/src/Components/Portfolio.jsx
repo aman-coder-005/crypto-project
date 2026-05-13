@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import API from "../Api";
 
 const Portfolio = () => {
   const [portfolio, setPortfolio] = useState([]);
@@ -23,8 +23,8 @@ const Portfolio = () => {
 
   useEffect(() => {
     fetchPrices();
-    axios
-      .get(`http://localhost:5000/api/portfolio/${userId}`)
+    API
+      .get(`/portfolio/${userId}`)
       .then((res) => setPortfolio(res.data))
       .catch((err) => console.log("Load error:", err));
   }, []);
@@ -39,7 +39,7 @@ const Portfolio = () => {
 
   const fetchPrices = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/prices");
+      const res = await API.get("/prices");
       setPrices(res.data);
     } catch (err) {
       console.error("Failed to fetch prices:", err.message);
@@ -64,7 +64,7 @@ const Portfolio = () => {
     const updatedPortfolio = [...portfolio, newCoin];
 
     try {
-      await axios.post("http://localhost:5000/api/portfolio", {
+      await API.post("/portfolio", {
         userId,
         coins: updatedPortfolio,
       });

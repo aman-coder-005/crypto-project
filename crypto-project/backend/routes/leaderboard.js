@@ -2,20 +2,25 @@
 import { Router } from "express";
 import Portfolio from "../models/Portfolio.js";
 import User from "../models/user.js"; // to fetch username
-import axios from "axios";
+import { coingeckoGet } from "../config/coingecko.js";
 
 const router = Router();
 
 // 🔹 helper to fetch live coin price
-const fetchCoinPrice = async (coinId) => {
+const fetchCoinPrices = async (coinIds) => {
+  if (coinIds.length === 0) return {};
+
   try {
-    const response = await axios.get(
-      `http://localhost:5000/api/prices` // call your own prices route
-    );
-    return response.data[coinId]?.usd || 0;
+    const response = await coingeckoGet("/simple/price", {
+      params: {
+        ids: [...new Set(coinIds)].join(","),
+        vs_currencies: "usd",
+      },
+    });
+    return response.data;
   } catch (error) {
-    console.error("Error fetching coin price:", error.message);
-    return 0;
+    console.error("Error fetching coin prices:", error.message);
+    return {};
   }
 };
 
@@ -23,6 +28,10 @@ const fetchCoinPrice = async (coinId) => {
 router.get("/", async (req, res) => {
   try {
     const portfolios = await Portfolio.find().populate("userId", "username"); 
+    const coinIds = portfolios.flatMap((portfolio) =>
+      portfolio.coins.map((coin) => coin.id)
+    );
+    const prices = await fetchCoinPrices(coinIds);
 
     const leaderboard = await Promise.all(
       portfolios.map(async (portfolio) => {
@@ -36,7 +45,7 @@ router.get("/", async (req, res) => {
         let currentValue = 0;
 
         for (const coin of portfolio.coins) {
-          const livePrice = await fetchCoinPrice(coin.id);
+          const livePrice = prices[coin.id]?.usd || 0;
           totalInvested += coin.quantity * coin.buyPrice;
           currentValue += coin.quantity * livePrice;
         }

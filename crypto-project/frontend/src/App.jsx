@@ -1,6 +1,5 @@
 import News from "./Components/News";
 import { useEffect, useState, useRef } from "react";
-import axios from "axios";
 import { io } from "socket.io-client";
 import {
   LineChart,
@@ -14,8 +13,10 @@ import Portfolio from "./Components/Portfolio";
 import Leaderboard from "./Components/Leaderboard";
 import Register from "./Components/Auth/Register";
 import Login from "./Components/Auth/Login";
+import API, { SERVER_URL } from "./Api";
 
-const socket = io("http://localhost:5000"); // replace with your backend URL
+const socketUrl = import.meta.env.VITE_SOCKET_URL || (import.meta.env.DEV ? SERVER_URL : "");
+const socket = socketUrl ? io(socketUrl) : null;
 
 export default function App() {
   const [coins, setCoins] = useState([]);
@@ -38,14 +39,12 @@ export default function App() {
   useEffect(() => {
     setChat([]);
     const fetchChat = async () => {
-      const res3 = await axios.get(
-        `http://localhost:5000/api/chat/${selectedCoin}`
-      );
+      const res3 = await API.get(`/chat/${selectedCoin}`);
       setChat(res3.data);
     };
     fetchChat();
     fetchPriceHistory(selectedCoin);
-    socket.emit("joinRoom", selectedCoin);
+    socket?.emit("joinRoom", selectedCoin);
   }, [selectedCoin]);
 
   // Set up socket listener ONCE
@@ -53,30 +52,28 @@ export default function App() {
     const handleMessage = (msg) => {
       setChat((prev) => [...prev, msg]);
     };
-    socket.on("receiveMessage", handleMessage);
+    socket?.on("receiveMessage", handleMessage);
     return () => {
-      socket.off("receiveMessage", handleMessage);
+      socket?.off("receiveMessage", handleMessage);
     };
   }, []);
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
-      const { data } = await axios.get("http://localhost:5000/api/leaderboard");
+      const { data } = await API.get("/leaderboard");
       setLeaderboard(data);
     };
     fetchLeaderboard();
   }, []);
 
   const fetchCoins = async () => {
-    const { data } = await axios.get("http://localhost:5000/api/market/coins");
+    const { data } = await API.get("/market/coins");
     setCoins(data.slice(0, 50));
   };
 
   const fetchPriceHistory = async (coin) => {
     try {
-      const { data } = await axios.get(
-        `http://localhost:5000/api/market/price-history/${coin}`
-      );
+      const { data } = await API.get(`/market/price-history/${coin}`);
 
       if (!Array.isArray(data)) {
         console.error("Unexpected data format:", data);
@@ -109,7 +106,7 @@ export default function App() {
       return;
     }
 
-    const res = await axios.post("http://localhost:5000/api/chat", {
+    const res = await API.post("/chat", {
       room: selectedCoin,
       message: message,
       user: user.id,
@@ -117,13 +114,11 @@ export default function App() {
 
     setMessage("");
     const fetchChat = async () => {
-      const res3 = await axios.get(
-        `http://localhost:5000/api/chat/${selectedCoin}`
-      );
+      const res3 = await API.get(`/chat/${selectedCoin}`);
       setChat(res3.data);
     };
     fetchChat();
-    socket.emit("sendMessage", res.data);
+    socket?.emit("sendMessage", res.data);
     inputRef.current?.focus();
   };
 

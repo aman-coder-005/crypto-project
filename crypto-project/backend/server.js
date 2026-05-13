@@ -1,5 +1,4 @@
 import express from "express";
-import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import http from "http";
@@ -10,25 +9,37 @@ import userRoutes from "./routes/User.js";
 import portfolioRoutes from "./routes/portfolio.js";
 import newsRoutes from "./routes/news.js";
 import marketRoutes from "./routes/market.js";
-import leaderboardRoutes from './routes/leaderboard.js';
-import chat from './routes/chat.js';
+import leaderboardRoutes from "./routes/leaderboard.js";
+import chat from "./routes/chat.js";
 import priceRoutes from "./routes/prices.js";
 
 dotenv.config({ quiet: true });
 connectDB();
 
 const app = express();
-
-const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST"],
-  },
-});
+const allowedOrigins = [
+  "http://localhost:5173",
+  process.env.FRONTEND_URL,
+].filter(Boolean);
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        origin.endsWith(".vercel.app")
+      ) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // Routes
@@ -37,47 +48,58 @@ app.use("/api/portfolio", portfolioRoutes);
 app.use("/api/news", newsRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/market", marketRoutes);
-app.use('/api/leaderboard', leaderboardRoutes);
+app.use("/api/leaderboard", leaderboardRoutes);
 app.use("/api/chat", chat);
 app.use("/api/prices", priceRoutes);
 
 app.get("/api/ping", (req, res) => {
-  res.send("✅ Backend is working!");
+  res.send("Backend is working!");
 });
 
-// Socket.io
-io.on("connection", (socket) => {
-  console.log("🔌 Client connected:", socket.id);
-
-  socket.on("joinRoom", (room) => {
-    socket.join(room);
-    console.log(`User joined room: ${room}`);
+if (!process.env.VERCEL) {
+  const server = http.createServer(app);
+  const io = new Server(server, {
+    cors: {
+      origin: allowedOrigins,
+      methods: ["GET", "POST"],
+    },
   });
 
-  socket.on("sendMessage", (msg) => {
-    io.to(msg.room).emit("receiveMessage", msg);
+  // Socket.io is only used by the local long-running backend.
+  io.on("connection", (socket) => {
+    console.log("Client connected:", socket.id);
+
+    socket.on("joinRoom", (room) => {
+      socket.join(room);
+      console.log(`User joined room: ${room}`);
+    });
+
+    socket.on("sendMessage", (msg) => {
+      io.to(msg.room).emit("receiveMessage", msg);
+    });
+
+    socket.on("disconnect", () => {
+      console.log("Client disconnected:", socket.id);
+    });
   });
 
-  socket.on("disconnect", () => {
-    console.log("❌ Client disconnected:", socket.id);
-  });
-});
+  const PORT = process.env.PORT || 5000;
 
-// Start only ONE server
-const PORT = process.env.PORT || 5000;
+  server.on("error", (error) => {
+    if (error.code === "EADDRINUSE") {
+      console.error(
+        `Port ${PORT} is already in use. Stop the other backend process or set a different PORT in .env.`
+      );
+      process.exit(1);
+    }
 
-server.on("error", (error) => {
-  if (error.code === "EADDRINUSE") {
-    console.error(
-      `Port ${PORT} is already in use. Stop the other backend process or set a different PORT in .env.`
-    );
+    console.error("Server failed to start:", error);
     process.exit(1);
-  }
+  });
 
-  console.error("Server failed to start:", error);
-  process.exit(1);
-});
+  server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
 
-server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+export default app;

@@ -1,6 +1,6 @@
 // src/Components/Auth/Login.jsx
 import { useState } from "react";
-import API from "../../api";
+import API from "../../Api";
 
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });

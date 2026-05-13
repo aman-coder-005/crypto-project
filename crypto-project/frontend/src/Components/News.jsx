@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import API from "../Api";
 
 export default function News() {
   const [news, setNews] = useState([]);
@@ -7,7 +7,7 @@ export default function News() {
   useEffect(() => {
     const fetchNews = async () => {
       try {
-        const { data } = await axios.get("http://localhost:5000/api/news");
+        const { data } = await API.get("/news");
         setNews(data.data); // Mediastack returns { data: [...] }
       } catch (error) {
         console.error("Error fetching news:", error);
