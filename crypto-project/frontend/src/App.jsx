@@ -94,8 +94,20 @@ export default function App() {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    setUser(null);
+    setActivePage("dashboard");
+    window.location.href = "/";
+  };
+
   const handleSendMessage = async () => {
     if (!message.trim()) return;
+    if (!user?.id) {
+      setActivePage("login");
+      return;
+    }
 
     const res = await axios.post("http://localhost:5000/api/chat", {
       room: selectedCoin,
@@ -115,7 +127,7 @@ export default function App() {
     inputRef.current?.focus();
   };
 
-  const DashboardPage = () => (
+  const renderDashboardPage = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div className="bg-white p-4 rounded-xl shadow-lg">
         <label className="block font-semibold mb-2">Select Coin</label>
@@ -158,12 +170,12 @@ export default function App() {
             <div
               key={i}
               className={`p-2 rounded-lg text-sm ${
-                msg.user.username === user?.username
+                msg.user?.username === user?.username
                   ? "bg-blue-500 text-white self-end"
                   : "bg-gray-200"
               }`}
             >
-              <strong>{msg.user.username}:</strong> {msg.message}
+              <strong>{msg.user?.username || "Unknown"}:</strong> {msg.message}
             </div>
           ))}
         </div>
@@ -174,11 +186,23 @@ export default function App() {
             className="flex-1 p-2 border rounded-l-lg outline-none focus:ring-2 focus:ring-blue-400"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Type a message"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleSendMessage();
+              }
+            }}
+            placeholder={user ? "Type a message" : "Login to send messages"}
+            disabled={!user}
           />
           <button
             onClick={handleSendMessage}
-            className="bg-blue-600 text-white px-4 rounded-r-lg hover:bg-blue-700"
+            disabled={!user}
+            className={`px-4 rounded-r-lg text-white ${
+              user
+                ? "bg-blue-600 hover:bg-blue-700"
+                : "bg-gray-400 cursor-not-allowed"
+            }`}
           >
             Send
           </button>
@@ -187,14 +211,14 @@ export default function App() {
     </div>
   );
 
-  const PortfolioPage = () => (
+  const renderPortfolioPage = () => (
     <div className="bg-white p-6 rounded-xl shadow-lg">
       <h2 className="text-2xl font-bold mb-4">My Portfolio</h2>
       <Portfolio />
     </div>
   );
 
-  const NewsPage = () => (
+  const renderNewsPage = () => (
     <div className="bg-white p-6 rounded-xl shadow-lg">
       <h2 className="text-2xl font-bold mb-4">Crypto News</h2>
       <News />
@@ -209,14 +233,7 @@ export default function App() {
           logged in as <span className="font-semibold">{user?.username}</span>
         </h3>
         <nav className="space-x-2">
-          {[
-            "dashboard",
-            "portfolio",
-            "leaderboard",
-            "news",
-            "login",
-            "register",
-          ].map((page) => (
+          {["dashboard", "portfolio", "leaderboard", "news"].map((page) => (
             <button
               key={page}
               onClick={() => setActivePage(page)}
@@ -229,17 +246,48 @@ export default function App() {
               {page.charAt(0).toUpperCase() + page.slice(1)}
             </button>
           ))}
+          {user ? (
+            <button
+              onClick={handleLogout}
+              className="px-4 py-1 rounded-full font-medium transition bg-red-600 text-white hover:bg-red-700 shadow-md"
+            >
+              Logout
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => setActivePage("login")}
+                className={`px-3 py-1 rounded-full font-medium transition ${
+                  activePage === "login"
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "hover:bg-blue-100 text-gray-700"
+                }`}
+              >
+                Login
+              </button>
+              <button
+                onClick={() => setActivePage("register")}
+                className={`px-3 py-1 rounded-full font-medium transition ${
+                  activePage === "register"
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "hover:bg-blue-100 text-gray-700"
+                }`}
+              >
+                Register
+              </button>
+            </>
+          )}
         </nav>
       </header>
 
-      {activePage === "dashboard" && <DashboardPage />}
-      {activePage === "portfolio" && <PortfolioPage />}
+      {activePage === "dashboard" && renderDashboardPage()}
+      {activePage === "portfolio" && renderPortfolioPage()}
       {activePage === "leaderboard" && (
         <div className="bg-white p-6 rounded-xl shadow-lg">
           <Leaderboard data={leaderboard} />
         </div>
       )}
-      {activePage === "news" && <NewsPage />}
+      {activePage === "news" && renderNewsPage()}
       {activePage === "login" && (
         <div className="bg-white p-6 rounded-xl shadow-lg">
           <Login />

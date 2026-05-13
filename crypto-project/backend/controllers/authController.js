@@ -45,6 +45,18 @@ export const register = async (req, res) => {
     });
 
   } catch (err) {
+    console.error("Registration error:", err);
+    // Handle Mongoose validation and duplicate key errors
+    if (err.code === 11000) {
+      const field = Object.keys(err.keyPattern)[0];
+      return res.status(400).json({ msg: `${field} already exists` });
+    }
+    if (err.name === "ValidationError") {
+      const messages = Object.values(err.errors)
+        .map(e => e.message)
+        .join(", ");
+      return res.status(400).json({ msg: messages });
+    }
     res.status(500).json({ msg: "Server error", error: err.message });
   }
 };
@@ -87,6 +99,17 @@ export const login = async (req, res) => {
     });
 
   } catch (err) {
+    console.error("Login error:", err);
+    if (err.code === 11000) {
+      const field = Object.keys(err.keyPattern)[0];
+      return res.status(400).json({ msg: `${field} already exists` });
+    }
+    if (err.name === "ValidationError") {
+      const messages = Object.values(err.errors)
+        .map(e => e.message)
+        .join(", ");
+      return res.status(400).json({ msg: messages });
+    }
     res.status(500).json({ msg: "Server error", error: err.message });
   }
 };

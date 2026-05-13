@@ -12,7 +12,7 @@ const fetchCoinPrice = async (coinId) => {
     const response = await axios.get(
       `http://localhost:5000/api/prices` // call your own prices route
     );
-    return response.data[coinId]?.inr || 0;
+    return response.data[coinId]?.usd || 0;
   } catch (error) {
     console.error("Error fetching coin price:", error.message);
     return 0;
@@ -26,6 +26,12 @@ router.get("/", async (req, res) => {
 
     const leaderboard = await Promise.all(
       portfolios.map(async (portfolio) => {
+        // Handle null user case
+        if (!portfolio.userId) {
+          console.warn("Portfolio with no userId found:", portfolio._id);
+          return null;
+        }
+
         let totalInvested = 0;
         let currentValue = 0;
 
@@ -47,10 +53,11 @@ router.get("/", async (req, res) => {
       })
     );
 
-    // sort highest profit first
-    leaderboard.sort((a, b) => b.profitPercentage - a.profitPercentage);
+    // Filter out null entries and sort highest profit first
+    const validLeaderboard = leaderboard.filter(entry => entry !== null);
+    validLeaderboard.sort((a, b) => b.profitPercentage - a.profitPercentage);
 
-    res.json(leaderboard);
+    res.json(validLeaderboard);
   } catch (err) {
     console.error("Leaderboard error:", err.message);
     res.status(500).json({ error: "Failed to fetch leaderboard" });

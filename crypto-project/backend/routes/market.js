@@ -1,16 +1,16 @@
 // backend/routes/market.js
 import express from "express";
-import axios from "axios";
+import { coingeckoGet, getCoinGeckoErrorDetails } from "../config/coingecko.js";
 
 const router = express.Router();
 
 // GET coin list
 router.get("/coins", async (req, res) => {
   try {
-    const response = await axios.get("https://api.coingecko.com/api/v3/coins/list");
+    const response = await coingeckoGet("/coins/list");
     res.json(response.data);
   } catch (error) {
-    console.error("Error fetching coin list:", error);
+    console.error("Error fetching coin list:", getCoinGeckoErrorDetails(error));
     res.status(500).json({ message: "Failed to fetch coins." });
   }
 });
@@ -20,8 +20,14 @@ router.get("/price-history/:coinId", async (req, res) => {
   const { coinId } = req.params;
 
   try {
-    const response = await axios.get(
-      `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=7`
+    const response = await coingeckoGet(
+      `/coins/${coinId}/market_chart`,
+      {
+        params: {
+          vs_currency: "usd",
+          days: 7,
+        },
+      }
     );
 
     const formatted = response.data.prices.map(([time, price]) => ({
@@ -31,7 +37,7 @@ router.get("/price-history/:coinId", async (req, res) => {
 
     res.json(formatted);
   } catch (error) {
-    console.error("Error fetching price history:", error);
+    console.error("Error fetching price history:", getCoinGeckoErrorDetails(error));
     res.status(500).json({ message: "Failed to fetch price history." });
   }
 });

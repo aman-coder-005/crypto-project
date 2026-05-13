@@ -15,7 +15,8 @@ export default function Login() {
       localStorage.setItem("user", JSON.stringify(res.data.user));
       window.location.href = "/"; // Redirect
     } catch (err) {
-      setMsg(err.response?.data?.message || "Error occurred");
+      console.error("Login error:", err);
+      setMsg(err.response?.data?.msg || err.response?.data?.message || "Error occurred");
     }
   };
 

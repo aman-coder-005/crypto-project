@@ -14,7 +14,7 @@ import leaderboardRoutes from './routes/leaderboard.js';
 import chat from './routes/chat.js';
 import priceRoutes from "./routes/prices.js";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 connectDB();
 
 const app = express();
@@ -65,6 +65,18 @@ io.on("connection", (socket) => {
 
 // Start only ONE server
 const PORT = process.env.PORT || 5000;
+
+server.on("error", (error) => {
+  if (error.code === "EADDRINUSE") {
+    console.error(
+      `Port ${PORT} is already in use. Stop the other backend process or set a different PORT in .env.`
+    );
+    process.exit(1);
+  }
+
+  console.error("Server failed to start:", error);
+  process.exit(1);
+});
 
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);

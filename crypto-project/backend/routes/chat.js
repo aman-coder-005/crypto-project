@@ -6,11 +6,12 @@ const router = express.Router();
 // Save a new message
 router.post("/", async (req, res) => {
     const { room, message, user } = req.body;
-    if (!room || !message) return res.status(400).json({ error: "Missing data" });
+    if (!room || !message || !user) return res.status(400).json({ error: "Missing data" });
 
     try {
         const newMessage = new Chat({ room, message, user })
         await newMessage.save();
+        await newMessage.populate("user", "username");
         res.status(201).json(newMessage);
     } catch (err) {
         res.status(500).json({ error: "Failed to save message" });

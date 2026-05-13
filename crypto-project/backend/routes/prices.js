@@ -1,6 +1,6 @@
 // routes/prices.js
 import express from "express";
-import axios from "axios";
+import { coingeckoGet, getCoinGeckoErrorDetails } from "../config/coingecko.js";
 
 const router = express.Router();
 
@@ -28,12 +28,12 @@ router.get("/", async (req, res) => {
             "polkadot",
         ].join(",");
 
-        const response = await axios.get(
-            `https://api.coingecko.com/api/v3/simple/price`,
+        const response = await coingeckoGet(
+            "/simple/price",
             {
                 params: {
                     ids,
-                    vs_currencies: "inr",
+                    vs_currencies: "inr,usd",
                 },
             }
         );
@@ -43,7 +43,7 @@ router.get("/", async (req, res) => {
 
         res.json(cachedPrices); // ✅ Fresh API response
     } catch (error) {
-        console.error("Failed to fetch prices:", error.message);
+        console.error("Failed to fetch prices:", getCoinGeckoErrorDetails(error));
         res.status(500).json({ error: "Failed to fetch prices" });
     }
 });

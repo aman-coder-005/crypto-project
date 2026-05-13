@@ -16,8 +16,8 @@ export default function Register() {
       localStorage.setItem("user", JSON.stringify(res.data.user));
       setMsg("✅ Registered successfully!");
     } catch (err) {
-      console.log("Registration error:", err);
-      setMsg(err.response?.data?.message || "❌ Error occurred");
+      console.error("Registration error:", err);
+      setMsg(err.response?.data?.msg || err.response?.data?.message || "❌ Error occurred");
     }
   };
 
