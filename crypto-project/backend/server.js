@@ -55,6 +55,10 @@ app.get("/api/ping", (req, res) => {
   res.send("Backend is working!");
 });
 
+app.get("/", (req, res) => {
+  res.send("Crypto Project Backend is running!");
+});
+
 if (!process.env.VERCEL) {
   const server = http.createServer(app);
   const io = new Server(server, {
